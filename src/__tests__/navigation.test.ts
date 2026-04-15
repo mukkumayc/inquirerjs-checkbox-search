@@ -439,4 +439,43 @@ describe('Navigation', () => {
     expect(screen).toContain('❯ ◉ Item 1');
     expect(screen).toContain('◉ Item 2'); // Should still be selected
   });
+
+  it('should keep cursor movement responsive when choices count is huge', async () => {
+    const totalItems = 10_000;
+    const choices = Array.from({ length: totalItems }, (_, i) => ({
+      value: `item-${i}`,
+      name: `Item ${i}`,
+    }));
+
+    const { events, getScreen } = await render(checkboxSearch, {
+      message: 'Select items',
+      choices,
+      pageSize: 10,
+    });
+
+    let screen = getScreen();
+    const firstLine = screen
+      .split('\n')
+      .find((line: string) => line.includes('Item 0'));
+    expect(firstLine).toBeDefined();
+    expect(firstLine).toContain('❯');
+
+    const downPresses = 20;
+    const startedAt = Date.now();
+    for (let i = 0; i < downPresses; i++) {
+      await events.keypress('down');
+    }
+    const elapsedMs = Date.now() - startedAt;
+
+    screen = getScreen();
+    const targetLabel = `Item ${downPresses}`;
+    expect(screen).toContain(targetLabel);
+    const activeLine = screen
+      .split('\n')
+      .find((line: string) => line.includes(targetLabel));
+    expect(activeLine).toBeDefined();
+    expect(activeLine).toContain('❯');
+
+    expect(elapsedMs).toBeLessThan(1_000);
+  });
 });
